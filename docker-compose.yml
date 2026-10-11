@@ -1,0 +1,37 @@
+services:
+  lavalink:
+    image: "${LAVALINK_IMAGE:-ghcr.io/lavalink-devs/lavalink:4-alpine}"
+    container_name: lavalink
+    restart: unless-stopped
+    init: true
+    stop_grace_period: 30s
+    environment:
+      JAVA_TOOL_OPTIONS: "-Xms512m -Xmx2g -XX:+UseG1GC"
+      LAVALINK_SERVER_PASSWORD: "${LAVALINK_SERVER_PASSWORD:?Set LAVALINK_SERVER_PASSWORD in .env}"
+      SPOTIFY_CLIENT_ID: "${SPOTIFY_CLIENT_ID:-}"
+      SPOTIFY_CLIENT_SECRET: "${SPOTIFY_CLIENT_SECRET:-}"
+    volumes:
+      - ./application.yml:/opt/Lavalink/application.yml:ro
+      - lavalink-plugins:/opt/Lavalink/plugins
+      - lavalink-logs:/opt/Lavalink/logs
+    expose:
+      - "2333"
+    ports:
+      - "127.0.0.1:2333:2333"
+    mem_limit: 3g
+    cpus: 1.75
+    networks:
+      - lavalink-private
+    logging:
+      driver: json-file
+      options:
+        max-size: "10m"
+        max-file: "3"
+
+networks:
+  lavalink-private:
+    name: lavalink-private
+
+volumes:
+  lavalink-plugins:
+  lavalink-logs:
