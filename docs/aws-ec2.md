@@ -2,15 +2,22 @@
 
 This runbook deploys the Lavalink service on one Ubuntu EC2 instance. The Lavalink REST/WebSocket port is not open to the internet: Compose publishes it only on the instance loopback interface and makes it available to trusted containers on a Docker bridge network.
 
-## 1. Create the EC2 instance
+## 1. Choose an instance and create it
 
-- Use Ubuntu Server 24.04 LTS, x86_64, and an instance with at least 2 vCPU and 4 GiB RAM. `t3a.medium` is a reasonable low-cost starting point for light/moderate playback; it is burstable, so monitor CPU credit balance and CPU utilization. For sustained encoding load, test a non-burstable 2-vCPU instance such as `c7a.large`, or increase instance size based on measurements.
-- Configure an encrypted 20 GiB gp3 root volume as a starting point. Increase it if logs, other services, or operating-system updates need more room.
+First check your AWS account creation date and account plan. AWS changed its Free Tier on July 15, 2025:
+
+- **New account created on or after July 15, 2025:** AWS documents `c7i-flex.large` (2 vCPU, 4 GiB RAM) as Free Tier eligible. Select the **Free account plan** if you want the six-month no-charge plan, and verify in the EC2 launch wizard that the selected instance, Ubuntu AMI, and Region are eligible before launching. The Free account plan ends after six months or when its credits are exhausted, whichever comes first. `t3a.medium` is not on the documented eligible-instance list.
+- **Account created before July 15, 2025:** the old EC2 allowance lists `t2.micro`/`t3.micro` for up to 12 months from account creation. Those sizes do not meet this deployment's 2-vCPU/4-GiB starting recommendation or its 3-GiB container memory limit. A `t3a.medium` or other larger instance may incur charges. Do not assume this Lavalink configuration can run reliably on a micro instance.
+
+The deployment's 2-GiB Java heap and 3-GiB container memory limit are intended for a host with at least 4 GiB RAM. Run Lavalink alone on a 2-vCPU/4-GiB instance; do not colocate the Discord bot at this size. This is only a low/moderate-load starting point, not a performance guarantee. If `c7i-flex.large` is not marked eligible in your launch wizard, stop and review pricing rather than choosing a different, possibly billable size by assumption.
+
+Select Ubuntu Server 24.04 LTS, x86_64, with an eligible AMI. Configure an encrypted 20 GiB gp3 root volume only after checking its price and any allowance applicable to your account/plan. Storage, public IPv4 addresses, data transfer, and other resources may consume credits or be billable depending on account plan and eligibility.
+
 - Attach a security group that allows inbound TCP 22 only from your trusted public IP as `/32`. Do not add inbound TCP 2333. Keep outbound access available for Discord, source providers, and package/image updates.
 - Require IMDSv2. An instance profile is not required for Lavalink; optionally attach `AmazonSSMManagedInstanceCore` and use Systems Manager Session Manager instead of exposing SSH.
 - Do not install the Discord bot on this host unless the instance is sized for both workloads. Store no bot token in this project's `.env`.
 
-Guild count is not a capacity measure by itself. Active voice players and the source/encoding workload determine CPU and memory demand. The Compose configuration limits Lavalink to 1.75 CPU and 3 GiB RAM with a 2 GiB Java heap. Watch `docker stats`, EC2 CPU, memory, CPU credits (for burstable instances), and playback error rates during representative peak traffic. Raise the instance and container limits together if memory or CPU remains constrained; add nodes and configure client-side node selection/failover when one instance cannot meet availability or capacity targets. A single EC2 host remains a single point of failure.
+Guild count is not a capacity measure by itself. Active voice players and source/encoding workload determine CPU and memory demand. The Compose configuration limits Lavalink to 1.75 CPU and 3 GiB RAM with a 2 GiB Java heap. Watch `docker stats`, EC2 CPU, memory, and playback error rates during representative peak traffic. Raise the instance and container limits together if memory or CPU remains constrained; add nodes and configure client-side node selection/failover when one instance cannot meet availability or capacity targets. A single EC2 host remains a single point of failure. A six-month free account is suitable for a cost-constrained trial, not a promise of production availability or free hosting beyond the plan.
 
 ## 2. Install Docker Engine and Compose
 

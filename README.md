@@ -43,7 +43,7 @@ Optional Spotify credentials (`SPOTIFY_CLIENT_ID` and `SPOTIFY_CLIENT_SECRET`) b
 
 ## Capacity guidance
 
-Start with 2 vCPU and 4 GiB RAM (for example, a burstable `t3a.medium`) for light/moderate concurrency, not as a guarantee for a particular guild count. Measure active voice players, source resolution rates, CPU credits/CPU utilization, memory, and playback failures at peak. Use a larger non-burstable instance when encoding load is sustained. Scale up memory and CPU limits together; use additional Lavalink nodes with bot-side node selection/failover when single-host capacity or availability is insufficient. One EC2 instance is a single point of failure.
+The Compose limits (2 GiB Java heap, 3 GiB container memory) need a host with at least 4 GiB RAM. For a new AWS account created on or after July 15, 2025, AWS lists `c7i-flex.large` (2 vCPU, 4 GiB) as Free Tier eligible; verify eligibility for the selected Region and AMI in the EC2 launch wizard. Choose AWS's Free account plan if using its six-month offer: it ends after six months or when credits run out, whichever comes first. `t3a.medium` is not on the documented eligible-instance list. Earlier accounts have different terms, and their listed `t2.micro`/`t3.micro` sizes are too small for this Compose configuration. Check all instance, AMI, storage, public IPv4, and data transfer costs before launch. Measure active players, CPU, memory, and playback failures; one host remains a single point of failure.
 
 ## Bot connectivity and event handling
 
